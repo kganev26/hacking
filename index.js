@@ -5,14 +5,11 @@ const path = require('path');
 
 const app = express();
 
-// Middleware to parse form data and JSON
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Serve static frontend files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Connect to Aiven MySQL using environment variables
 const db = mysql.createConnection({
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
@@ -20,17 +17,15 @@ const db = mysql.createConnection({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME || 'defaultdb',
     ssl: { 
-        rejectUnauthorized: false // Prevents the self-signed certificate error
+        rejectUnauthorized: false
     }
 });
 
-// Serve the index.html page at the root URL
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Handle User Registration
-app.post('/register', async (req, res) => {
+app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     
     if (!username || !password) {
@@ -38,7 +33,7 @@ app.post('/register', async (req, res) => {
     }
 
     try {
-        const hashedPassword = password;
+        const hashedPassword = await bcrypt.hash(password, 10);
         const sql = 'INSERT INTO users (username, password) VALUES (?, ?)';
         
         db.query(sql, [username, hashedPassword], (err) => {
@@ -52,8 +47,7 @@ app.post('/register', async (req, res) => {
     }
 });
 
-// Handle User Login
-app.post('/login', (req, res) => {
+app.post('/register', (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
@@ -78,5 +72,4 @@ app.post('/login', (req, res) => {
     });
 });
 
-// Export the app for Vercel serverless functions
 module.exports = app;
